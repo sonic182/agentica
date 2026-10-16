@@ -35,7 +35,9 @@ development skill's notes, the `docs/vm/` sections named in §27, and tests that
 assert codes and spans (checker tests, golden VM fixtures, site examples, and
 hermetic I/O tests against a Python counterpart on port 0). Section 27.4 adds
 two items: 17d (`File.each_line`, row 7.2.1h) and 17e (`Stream[T]`, order step
-8.2). Section 27.5 adds no item: its help hints come with 17a and 17b.
+8.2). On 2026-10-16 the owner moved 17e before `format` (15k) and started it
+on `feat/lazy-streams`. Section 27.5 adds no item: its help hints come with 17a
+and 17b.
 
 - [x] 17a `Task.map(items, limit, timeout_ms) do |x| ... end` (§27.1): bounded
   concurrency (`limit` 1 to 1024, `RUNTIME-INVALID-COUNT`), a per-item timeout
@@ -268,19 +270,23 @@ two items: 17d (`File.each_line`, row 7.2.1h) and 17e (`Stream[T]`, order step
   `Test.run` leftover, a later `Task.map` timeout) leaves the file open until
   the end of the run, as a `File.open` handle does, until 24b; a crash of the
   task or of an ancestor closes it.
-- [ ] 17e `Stream[T]` (§27.4, step 2), order step 8.2, after 15f (the prelude)
-  and 17d. A builtin opaque generic and an immutable recipe: sources
+- [ ] **17e: `Stream[T]` implementation complete in PR #339; review pending.**
+  (§27.4, step 2), order step 8.2, after 15f (the prelude) and 17d, before
+  `format` (15k) by the owner's decision. A builtin opaque generic and an
+  immutable recipe: sources
   `Stream.lines(path, buffer_bytes, timeout_ms)` (the block buffer of 17d) and
   `Stream.iterate(seed, f)`; lazy `map`, `filter`, `take(n)` and `take_while`;
   terminals `to_list(max)`, `each` and `reduce`, which return a `Result`. Steps
   are methods (`s.filter(f)`), and `|>` only takes the path into `Stream.lines`;
   `s |> Stream.filter(f)` is `CHECK-PIPE-METHOD` (§25.14). A file source closes
   on every terminal path, as `File.open` with a block does. Written in the
-  prelude (§25.6), so it waits for faster lists (8d). The checker and VM rules
-  are added to §27.4 before the code lands. Tests: checker tests for the
-  methods, the pipe rule and the terminals' types; golden fixtures without
-  timing (a pipeline over a small file, an early `take`, a `try` failure,
-  `to_list` over its limit, the step count). Docs: `grammar.md` (builtins),
+  prelude (§25.6), so it waits for faster lists (8d). The VM stores an
+  immutable recipe and runs one item at a time through a resumable stepper;
+  file sources reuse the `File.each_line` reader. `each` takes a callback
+  returning `Result[Void]`, so an error stops the terminal. Tests cover
+  generated pipelines, line sources, repeat terminals, zero limits, callback
+  errors, invalid paths and checker result types. Docs:
+  `grammar.md` (builtins),
   `references/files.md` and `references/builtins.md`, a new
   `site/content/library/data-structures/stream.md` with a runnable example, the
   development skill's notes (the prelude's `Stream` bodies).
