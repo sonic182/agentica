@@ -6,10 +6,10 @@
  */
 #define _GNU_SOURCE
 #include "../services.h"
-
 #include <stdio.h>
 
 #ifdef __linux__
+#include "remove_sandbox.h"
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
@@ -369,6 +369,7 @@ static void run_case(void (*test)(const char *), const char *base) {
 }
 
 int main(void) {
+  if (!agc_test_remove_sandbox()) return 1;
   /* A walk that never ends fails the test instead of hanging the build. */
   alarm(60);
   const char *tmp = getenv("TMPDIR");
